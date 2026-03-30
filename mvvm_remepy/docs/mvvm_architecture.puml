@@ -1,0 +1,186 @@
+@startuml MVVM_Remepy_Architecture
+
+package "mvvm_remepy" {
+
+  ' Core MVVM Components
+  class Model<T> {
+    -T? arguments
+    -bool isLoading
+    -String appBarTitle  
+    -bool willPop
+    -String nextText
+    +Model({this.arguments})
+  }
+
+  class ViewModel<T extends Model> {
+    -final T model
+    +ViewModel({required this.model})
+    +void onViewLoaded(dynamic data)
+    +void onViewResumed()
+    +void onViewPaused()
+    +void dispose()
+  }
+
+  abstract class BasePage<M extends Model, VM extends ViewModel<M>> {
+    -final VM viewModel
+    +BasePage({required this.viewModel, key})
+    +BasePageState createState()
+  }
+
+  abstract class BasePageState<M, VM, T> {
+    -M model
+    -late VM viewModel
+    +Widget body
+    +Widget loader
+    +Widget? drawer
+    +Widget? bottomNavigationBar
+    +Widget? floatingActionButton
+    +Color backgroundColor
+    +bool extendBody
+    +void initState()
+    +void didChangeDependencies()
+    +void didPopNext()
+    +void didPushNext()
+    +void dispose()
+    +Widget build(BuildContext context)
+    +void onNotify([M? data])
+    +void onAlert(AlertModel alertModel)
+    +void onNavigate(NavigateModel navigateModel)
+    +void onEvent(EventInfo info)
+  }
+
+  ' Observer Pattern Components
+  mixin Observable<T extends ObservedData> {
+    -final Set<Observer> _observers
+    +void addObserver(Observer observer)
+    +void removeObserver(Observer observer)
+    +void notifyObservers(T data)
+  }
+
+  mixin Observer<T> {
+    -final Set<String> _events
+    +List<String> events
+    +void subscribeAll(List<String> events)
+    +void unsubscribeAll(List<String> events)
+    +void subscribe({required String event})
+    +void unsubscribe({required String event})
+    +void clear()
+    +void onNotify(ObservedData<T> data)
+  }
+
+  class ObservedData<T> {
+    -String? event
+    -T? data
+    +ObservedData({required this.event, this.data})
+  }
+
+  ' Provider Pattern Components
+  mixin Provider<T> {
+    -final Set<Consumer> _consumers
+    -static const onViewLoadedEvent
+    +Consumer root
+    +void addConsumer(Consumer<T> consumer)
+    +void removeConsumer(Consumer<T> consumer)
+    +void notify()
+    +void notifyAlert(AlertModel alertModel)
+    +void emitEvent(EventInfo info)
+    +void notifyNavigate(NavigateModel navigateModel)
+  }
+
+  abstract class Consumer<T> {
+    +void onNotify()
+    +void onEvent(EventInfo info)
+    +void onNavigate(NavigateModel navigateModel)
+    +void onAlert(AlertModel alertModel)
+  }
+
+  ' Supporting Data Classes
+  class EventInfo<T> {
+    -final String name
+    -T? extraInfo
+    +EventInfo({required this.name, this.extraInfo})
+  }
+
+  class NavigateModel {
+    -final String routeName
+    -dynamic arguments
+    -bool? replace
+    +NavigateModel({required this.routeName, this.arguments, this.replace})
+  }
+
+  class AlertAction {
+    -final String title
+    -VoidCallback? onTap
+    +AlertAction({required this.title, this.onTap})
+  }
+
+  enum AlertModelType {
+    basic
+    notification
+    actionBar
+  }
+
+  class AlertModel {
+    -final AlertModelType type
+    -String? title
+    -String? body
+    -List<AlertAction>? actions
+    +AlertModel({this.type, this.title, this.actions, this.body})
+  }
+
+  ' Router Observer
+  class RouteObserver<ModalRoute<void>> {
+    <<Flutter Framework>>
+  }
+}
+
+' Relationships
+Model ||--o{ ViewModel : contains
+ViewModel ||--o{ BasePage : injected into
+BasePage ||--|| BasePageState : creates
+BasePageState ..|> Consumer : implements
+BasePageState ..> RouteAware : implements
+
+ViewModel ..|> Provider : mixed with
+ViewModel ..|> Observer : mixed with
+
+Provider o--{ Consumer : manages
+Observable o--{ Observer : manages
+Observer --> ObservedData : observes
+
+Provider --> AlertModel : notifies with
+Provider --> NavigateModel : notifies with
+Provider --> EventInfo : emits
+
+AlertModel o--{ AlertAction : contains
+AlertModel --> AlertModelType : uses
+
+BasePageState --> Model : accesses
+BasePageState --> ViewModel : uses
+
+note right of ViewModel
+  ViewModel serves as the bridge between
+  the View (BasePage/BasePageState) and 
+  the Model, implementing MVVM pattern
+  with Observer and Provider mixins
+end note
+
+note left of BasePageState
+  BasePageState handles Flutter lifecycle
+  events and implements Consumer to
+  receive notifications from ViewModel
+end note
+
+note bottom of Provider
+  Provider pattern enables communication
+  from ViewModel to View through
+  Consumer interface
+end note
+
+note top of Observable
+  Observer pattern enables decoupled
+  communication between components
+  through event subscription
+end note
+
+@enduml
