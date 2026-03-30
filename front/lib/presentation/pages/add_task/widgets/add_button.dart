@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:todo_list/core/style/app_colors.dart';
 
 class AddButton extends StatelessWidget {
-  const AddButton({super.key, required this.onPressed, required this.isLoading});
+  const AddButton({
+    super.key,
+    required this.onPressed,
+    required this.isLoading,
+  });
   final VoidCallback onPressed;
   final bool isLoading;
   @override
@@ -16,9 +20,7 @@ class AddButton extends StatelessWidget {
               onPressed: isLoading ? null : onPressed,
               backgroundColor: AppColors.primaryColor,
               child: isLoading
-                  ? const CircularProgressIndicator(
-                      color: AppColors.whiteColor,
-                    )
+                  ? const CircularProgressIndicator(color: AppColors.whiteColor)
                   : const Text(
                       'ADD',
                       style: TextStyle(
@@ -27,7 +29,6 @@ class AddButton extends StatelessWidget {
                         color: AppColors.whiteColor,
                       ),
                     ),
-        
             ),
           ),
         ),

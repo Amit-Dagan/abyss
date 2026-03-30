@@ -1,0 +1,47 @@
+[
+  {
+    "id": "front_unit",
+    "name": "Front Unit",
+    "shortCode": "FR",
+    "iconKey": "soldier",
+    "attack": 2,
+    "health": 6,
+    "skills": [
+      {
+        "effectType": "damage",
+        "amount": 2,
+        "targetKey": "adjacent_enemies"
+      }
+    ]
+  },
+  {
+    "id": "ranged_unit",
+    "name": "Ranged Unit",
+    "shortCode": "RG",
+    "iconKey": "ranged",
+    "attack": 3,
+    "health": 3,
+    "skills": [
+      {
+        "effectType": "damage",
+        "amount": 3,
+        "targetKey": "first_enemy_row"
+      }
+    ]
+  },
+  {
+    "id": "healer",
+    "name": "Healer",
+    "shortCode": "HL",
+    "iconKey": "healer",
+    "attack": 1,
+    "health": 4,
+    "skills": [
+      {
+        "effectType": "heal",
+        "amount": 1,
+        "targetKey": "ally_in_front"
+      }
+    ]
+  }
+]

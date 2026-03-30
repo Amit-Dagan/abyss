@@ -41,6 +41,4 @@ class TaskModel {
       isCompleted: isCompleted,
     );
   }
-
 }
-

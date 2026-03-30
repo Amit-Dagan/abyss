@@ -6,9 +6,16 @@ import 'package:todo_list/domain/repo/task_repo.dart';
 // }
 
 class MockTaskRepositoryImpl implements TaskRepository {
-
-  TaskEntity task1 = TaskEntity(id: '0', description: 'Sample Task', isCompleted: false);
-  TaskEntity task2 = TaskEntity(id: '1', description: 'Completed Task', isCompleted: true); 
+  TaskEntity task1 = TaskEntity(
+    id: '0',
+    description: 'Sample Task',
+    isCompleted: false,
+  );
+  TaskEntity task2 = TaskEntity(
+    id: '1',
+    description: 'Completed Task',
+    isCompleted: true,
+  );
   List<TaskEntity> _tasks = [];
   MockTaskRepositoryImpl() {
     _tasks = [task1, task2];
