@@ -12,9 +12,15 @@ class GetStarted extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          GetStartedText(text: 'Looks like you don\'t have any tasks yet', fontSize: 24),
+          GetStartedText(
+            text: 'Looks like you don\'t have any tasks yet',
+            fontSize: 24,
+          ),
           SizedBox(height: 30),
-          GetStartedText(text: 'Tap the + button to add your first task', fontSize: 16),
+          GetStartedText(
+            text: 'Tap the + button to add your first task',
+            fontSize: 16,
+          ),
         ],
       ),
     );
@@ -25,14 +31,18 @@ class GetStartedText extends StatelessWidget {
   final String text;
   final double fontSize;
 
-  const GetStartedText({
-    super.key, required this.text, required this.fontSize,
-  });
-  
+  const GetStartedText({super.key, required this.text, required this.fontSize});
+
   @override
   Widget build(BuildContext context) {
-    return Text(text, 
-    style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold,color: AppColors.primaryColor),
-    textAlign: TextAlign.center,);
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: fontSize,
+        fontWeight: FontWeight.bold,
+        color: AppColors.primaryColor,
+      ),
+      textAlign: TextAlign.center,
+    );
   }
 }

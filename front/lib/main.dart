@@ -1,30 +1,48 @@
 import 'package:flutter/material.dart';
-import 'package:todo_list/presentation/pages/add_task/add_task_model.dart';
-import 'package:todo_list/presentation/pages/add_task/add_task_screen.dart';
-import 'package:todo_list/presentation/pages/add_task/add_task_view_model.dart';
-import 'package:todo_list/presentation/pages/main/main_model.dart';
-import 'package:todo_list/presentation/pages/main/main_screen.dart';
-import 'package:todo_list/presentation/pages/main/main_view_model.dart';
+import 'package:mvvm_remepy/base_page.dart';
+import 'package:todo_list/presentation/pages/battle/battle_model.dart';
+import 'package:todo_list/presentation/pages/battle/battle_screen.dart';
+import 'package:todo_list/presentation/pages/battle/battle_view_model.dart';
+import 'package:todo_list/presentation/pages/battle_settings/battle_settings_model.dart';
+import 'package:todo_list/presentation/pages/battle_settings/battle_settings_screen.dart';
+import 'package:todo_list/presentation/pages/battle_settings/battle_settings_view_model.dart';
+import 'package:todo_list/presentation/pages/unit_editor/unit_editor_model.dart';
+import 'package:todo_list/presentation/pages/unit_editor/unit_editor_screen.dart';
+import 'package:todo_list/presentation/pages/unit_editor/unit_editor_view_model.dart';
+import 'package:todo_list/presentation/pages/unit_library/unit_library_model.dart';
+import 'package:todo_list/presentation/pages/unit_library/unit_library_screen.dart';
+import 'package:todo_list/presentation/pages/unit_library/unit_library_view_model.dart';
 import 'package:todo_list/service_locator.dart';
 
-void main() {
-  initializeDependencies();
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDependencies();
   runApp(MyApp());
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Battle Simulator',
       debugShowCheckedModeBanner: false,
-      // Define named routes
+      navigatorObservers: [routeObserver],
       initialRoute: '/',
       routes: {
-        '/': (context) => MainScreen(viewModel: MainViewModel(model: MainModel())),
-        '/addTask': (context) => AddTaskScreen(viewModel: AddTaskViewModel(model: AddTaskModel()),),
+        '/': (context) => BattleSettingsScreen(
+          viewModel: BattleSettingsViewModel(model: BattleSettingsModel()),
+        ),
+        '/battle': (context) =>
+            BattleScreen(viewModel: BattleViewModel(model: BattleModel())),
+        '/units': (context) => UnitLibraryScreen(
+          viewModel: UnitLibraryViewModel(model: UnitLibraryModel()),
+        ),
+        '/unitEditor': (context) => UnitEditorScreen(
+          viewModel: UnitEditorViewModel(model: UnitEditorModel()),
+        ),
       },
     );
   }
 }
-

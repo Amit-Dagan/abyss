@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:todo_list/core/style/app_colors.dart';
 import 'package:todo_list/domain/entities/task.dart';
+
 class TaskWidget extends StatelessWidget {
   const TaskWidget({super.key, required this.task, required this.onToggle});
 
@@ -38,10 +39,7 @@ class TaskWidget extends StatelessWidget {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
             child: Checkbox(
-              side: BorderSide(
-                color: AppColors.primaryColor,
-                width: 2,
-              ),
+              side: BorderSide(color: AppColors.primaryColor, width: 2),
               activeColor: AppColors.primaryColor,
               key: ValueKey(isDone),
               value: isDone,

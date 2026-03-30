@@ -8,7 +8,7 @@ import '../../../domain/repo/task_repo.dart';
 import '../../../service_locator.dart';
 import 'add_task_model.dart';
 
-class AddTaskViewModel extends ViewModel<AddTaskModel>{
+class AddTaskViewModel extends ViewModel<AddTaskModel> {
   AddTaskViewModel({required super.model});
   final TaskRepository _taskRepository = sl<TaskRepository>();
   final uuid = Uuid();
@@ -20,10 +20,7 @@ class AddTaskViewModel extends ViewModel<AddTaskModel>{
     String taskTitle = _controller.text.trim();
     if (taskTitle.isEmpty) {
       notifyAlert(
-        AlertModel(
-          title: 'Error',
-          body: 'Please enter a task description',
-        ),
+        AlertModel(title: 'Error', body: 'Please enter a task description'),
       );
       return;
     }
@@ -39,13 +36,7 @@ class AddTaskViewModel extends ViewModel<AddTaskModel>{
       notify();
     } catch (e) {
       model.status = Status.failure;
-      notifyAlert(
-        AlertModel(
-          title: 'Error',
-          body: 'Please try again later',
-        ),
-      );
+      notifyAlert(AlertModel(title: 'Error', body: 'Please try again later'));
     }
   }
-
 }
