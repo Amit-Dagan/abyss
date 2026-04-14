@@ -56,7 +56,7 @@ class BattleSimulator {
       if (cleanupQueue.hasAnyEffect) {
         hasMeaningfulChange = true;
       }
-      _applyPendingEffects(units);
+      _applyPendingStatEffects(units);
 
       final List<_RuntimeUnit> fallenInCleanup = _removeDeadUnits(units);
       if (fallenInCleanup.isNotEmpty) {
@@ -77,11 +77,21 @@ class BattleSimulator {
         );
       }
 
-      final List<String> moveEvents = _applyAttackerMovement(units);
+      final List<String> knockbackEvents = _applyPendingKnockback(units);
+      if (knockbackEvents.isNotEmpty) {
+        events.addAll(knockbackEvents);
+        hasMeaningfulChange = true;
+      }
+
+      _clearPendingEffects(units);
+
+      final List<String> moveEvents = _applyMovement(units);
       if (moveEvents.isNotEmpty) {
         events.addAll(moveEvents);
         hasMeaningfulChange = true;
       }
+
+      _clearAdvanceLocks(units);
 
       if (_hasAttackerBreakthrough(units)) {
         events.add('Red Team broke through the blue back rank');
@@ -95,7 +105,11 @@ class BattleSimulator {
       }
 
       if (events.isEmpty) {
-        events.add('Blue Team held the line');
+        events.add(
+          _config.isBattle
+              ? 'Blue Team held the line'
+              : 'Both armies held their formation',
+        );
       }
 
       final BattleSnapshotEntity snapshot = _buildSnapshot(
@@ -109,14 +123,19 @@ class BattleSimulator {
       if (!seenStates.add(stateKey) || !hasMeaningfulChange) {
         return BattleTimelineEntity(
           snapshots: snapshots,
-          result: _buildDefenderVictoryResult('Blue Team held the line'),
+          result: _buildSafetyResult(units),
         );
       }
     }
 
     return BattleTimelineEntity(
       snapshots: snapshots,
-      result: _buildDefenderVictoryResult('Blue Team survived the turn limit'),
+      result: _config.isBattle
+          ? _buildDefenderVictoryResult('Blue Team survived the turn limit')
+          : _buildTournamentSafetyResult(
+              units,
+              'Tournament reached the turn limit',
+            ),
     );
   }
 
@@ -203,6 +222,14 @@ class BattleSimulator {
             }
             events.add(
               '${unit.label} buffed ${targets.length} target(s) by ${skill.amount} attack',
+            );
+          case BattleSkillEffectType.knockback:
+            for (final _RuntimeUnit target in targets) {
+              target.pendingKnockbackDistance += skill.amount;
+              target.skipAdvanceThisTurn = true;
+            }
+            events.add(
+              '${unit.label} queued knockback for ${targets.length} target(s)',
             );
         }
       }
@@ -328,6 +355,7 @@ class BattleSimulator {
   _CleanupQueue _buildCleanupQueue(List<_RuntimeUnit> units) {
     final Map<String, int> healthDeltas = <String, int>{};
     final Map<String, int> attackBuffs = <String, int>{};
+    final Map<String, int> knockbacks = <String, int>{};
 
     for (final _RuntimeUnit unit in units) {
       if (unit.pendingHealthDelta != 0) {
@@ -336,12 +364,19 @@ class BattleSimulator {
       if (unit.pendingAttackDelta != 0) {
         attackBuffs[unit.instanceId] = unit.pendingAttackDelta;
       }
+      if (unit.pendingKnockbackDistance != 0) {
+        knockbacks[unit.instanceId] = unit.pendingKnockbackDistance;
+      }
     }
 
-    return _CleanupQueue(healthDeltas: healthDeltas, attackBuffs: attackBuffs);
+    return _CleanupQueue(
+      healthDeltas: healthDeltas,
+      attackBuffs: attackBuffs,
+      knockbacks: knockbacks,
+    );
   }
 
-  void _applyPendingEffects(List<_RuntimeUnit> units) {
+  void _applyPendingStatEffects(List<_RuntimeUnit> units) {
     for (final _RuntimeUnit unit in units) {
       if (unit.pendingHealthDelta != 0) {
         unit.currentHealth = (unit.currentHealth + unit.pendingHealthDelta)
@@ -352,8 +387,87 @@ class BattleSimulator {
         unit.currentAttack = (unit.currentAttack + unit.pendingAttackDelta)
             .clamp(1, 999);
       }
+    }
+  }
 
+  List<String> _applyPendingKnockback(List<_RuntimeUnit> units) {
+    final List<_RuntimeUnit> knockedUnits =
+        units.where((unit) => unit.pendingKnockbackDistance > 0).toList()
+          ..sort(_sortUnits);
+    if (knockedUnits.isEmpty) {
+      return const <String>[];
+    }
+
+    final int maxSteps = knockedUnits
+        .map((unit) => unit.pendingKnockbackDistance)
+        .fold(
+          0,
+          (int maxValue, int value) => value > maxValue ? value : maxValue,
+        );
+    final Map<String, int> movedSteps = <String, int>{};
+
+    for (int step = 0; step < maxSteps; step++) {
+      final Set<BattleCoordinate> occupiedCoordinates = units
+          .map((unit) => BattleCoordinate(row: unit.row, column: unit.column))
+          .toSet();
+      final Map<String, BattleCoordinate> proposals =
+          <String, BattleCoordinate>{};
+      final Map<BattleCoordinate, int> destinationCounts =
+          <BattleCoordinate, int>{};
+
+      for (final _RuntimeUnit unit in knockedUnits) {
+        if (unit.pendingKnockbackDistance <= step) {
+          continue;
+        }
+
+        final BattleCoordinate nextPosition = BattleCoordinate(
+          row: unit.row - unit.armySide.forwardDirection,
+          column: unit.column,
+        );
+
+        if (!_isInsideBoard(nextPosition.row, nextPosition.column)) {
+          continue;
+        }
+        if (occupiedCoordinates.contains(nextPosition)) {
+          continue;
+        }
+
+        proposals[unit.instanceId] = nextPosition;
+        destinationCounts[nextPosition] =
+            (destinationCounts[nextPosition] ?? 0) + 1;
+      }
+
+      for (final _RuntimeUnit unit in knockedUnits) {
+        final BattleCoordinate? proposed = proposals[unit.instanceId];
+        if (proposed == null || destinationCounts[proposed] != 1) {
+          continue;
+        }
+
+        unit
+          ..row = proposed.row
+          ..column = proposed.column;
+        movedSteps[unit.instanceId] = (movedSteps[unit.instanceId] ?? 0) + 1;
+      }
+    }
+
+    return knockedUnits
+        .where((unit) => (movedSteps[unit.instanceId] ?? 0) > 0)
+        .map(
+          (unit) =>
+              '${unit.label} was knocked back ${movedSteps[unit.instanceId]} square(s)',
+        )
+        .toList(growable: false);
+  }
+
+  void _clearPendingEffects(List<_RuntimeUnit> units) {
+    for (final _RuntimeUnit unit in units) {
       unit.clearPendingEffects();
+    }
+  }
+
+  void _clearAdvanceLocks(List<_RuntimeUnit> units) {
+    for (final _RuntimeUnit unit in units) {
+      unit.skipAdvanceThisTurn = false;
     }
   }
 
@@ -365,9 +479,20 @@ class BattleSimulator {
     return deadUnits;
   }
 
+  List<String> _applyMovement(List<_RuntimeUnit> units) {
+    if (_config.isTournament) {
+      return _applyTournamentMovement(units);
+    }
+    return _applyAttackerMovement(units);
+  }
+
   List<String> _applyAttackerMovement(List<_RuntimeUnit> units) {
     final List<_RuntimeUnit> attackers =
-        units.where((unit) => unit.armySide.isAttacker).toList()
+        units
+            .where(
+              (unit) => unit.armySide.isAttacker && !unit.skipAdvanceThisTurn,
+            )
+            .toList()
           ..sort(_sortUnits);
     if (attackers.isEmpty) {
       return const <String>[];
@@ -415,7 +540,75 @@ class BattleSimulator {
     return moveEvents;
   }
 
+  List<String> _applyTournamentMovement(List<_RuntimeUnit> units) {
+    final List<_RuntimeUnit> movers =
+        units.where((unit) => !unit.skipAdvanceThisTurn).toList()
+          ..sort(_sortUnits);
+    final Set<BattleCoordinate> occupiedCoordinates = units
+        .map((unit) => BattleCoordinate(row: unit.row, column: unit.column))
+        .toSet();
+    final Map<String, BattleCoordinate> proposals =
+        <String, BattleCoordinate>{};
+    final Map<BattleCoordinate, int> destinationCounts =
+        <BattleCoordinate, int>{};
+
+    for (final _RuntimeUnit unit in movers) {
+      final BattleCoordinate nextPosition = BattleCoordinate(
+        row: unit.row + unit.armySide.forwardDirection,
+        column: unit.column,
+      );
+
+      if (!_isInsideBoard(nextPosition.row, nextPosition.column)) {
+        continue;
+      }
+      if (!_canAdvanceTowardCenter(unit: unit, nextRow: nextPosition.row)) {
+        continue;
+      }
+      if (occupiedCoordinates.contains(nextPosition)) {
+        continue;
+      }
+
+      proposals[unit.instanceId] = nextPosition;
+      destinationCounts[nextPosition] =
+          (destinationCounts[nextPosition] ?? 0) + 1;
+    }
+
+    final List<String> moveEvents = <String>[];
+    for (final _RuntimeUnit unit in movers) {
+      final BattleCoordinate? proposed = proposals[unit.instanceId];
+      if (proposed == null || destinationCounts[proposed] != 1) {
+        continue;
+      }
+
+      unit
+        ..row = proposed.row
+        ..column = proposed.column;
+      moveEvents.add('${unit.label} advanced to ${proposed.toString()}');
+    }
+
+    return moveEvents;
+  }
+
+  bool _canAdvanceTowardCenter({
+    required _RuntimeUnit unit,
+    required int nextRow,
+  }) {
+    if (_config.isBattle) {
+      return true;
+    }
+
+    final int halfRows = _config.rows ~/ 2;
+    if (unit.armySide == ArmySide.armyA) {
+      return nextRow < halfRows;
+    }
+    return nextRow >= halfRows;
+  }
+
   bool _hasAttackerBreakthrough(List<_RuntimeUnit> units) {
+    if (_config.isTournament) {
+      return false;
+    }
+
     return units.any(
       (_RuntimeUnit unit) =>
           unit.armySide.isAttacker && unit.row == _config.rows - 1,
@@ -452,6 +645,44 @@ class BattleSimulator {
     );
   }
 
+  BattleResultEntity _buildSafetyResult(List<_RuntimeUnit> units) {
+    if (_config.isBattle) {
+      return _buildDefenderVictoryResult('Blue Team held the line');
+    }
+    return _buildTournamentSafetyResult(units, 'Tournament stalled');
+  }
+
+  BattleResultEntity _buildTournamentSafetyResult(
+    List<_RuntimeUnit> units,
+    String prefix,
+  ) {
+    final int redHealth = _totalHealthForSide(units, ArmySide.armyA);
+    final int blueHealth = _totalHealthForSide(units, ArmySide.armyB);
+
+    if (redHealth > blueHealth) {
+      return _buildAttackerVictoryResult(
+        '$prefix, so Red Team won on remaining health',
+      );
+    }
+    if (blueHealth > redHealth) {
+      return _buildDefenderVictoryResult(
+        '$prefix, so Blue Team won on remaining health',
+      );
+    }
+
+    final int redUnits = _countUnitsForSide(units, ArmySide.armyA);
+    final int blueUnits = _countUnitsForSide(units, ArmySide.armyB);
+    if (redUnits >= blueUnits) {
+      return _buildAttackerVictoryResult(
+        '$prefix, so Red Team won the tiebreak',
+      );
+    }
+
+    return _buildDefenderVictoryResult(
+      '$prefix, so Blue Team won the tiebreak',
+    );
+  }
+
   BattleSnapshotEntity _buildSnapshot({
     required int turn,
     required List<_RuntimeUnit> units,
@@ -478,6 +709,12 @@ class BattleSimulator {
 
   int _countUnitsForSide(List<_RuntimeUnit> units, ArmySide side) {
     return units.where((unit) => unit.armySide == side).length;
+  }
+
+  int _totalHealthForSide(List<_RuntimeUnit> units, ArmySide side) {
+    return units
+        .where((unit) => unit.armySide == side)
+        .fold(0, (int sum, _RuntimeUnit unit) => sum + unit.currentHealth);
   }
 
   int _sortUnits(_RuntimeUnit a, _RuntimeUnit b) {
@@ -525,10 +762,18 @@ class BattleSimulator {
 class _CleanupQueue {
   final Map<String, int> healthDeltas;
   final Map<String, int> attackBuffs;
+  final Map<String, int> knockbacks;
 
-  const _CleanupQueue({required this.healthDeltas, required this.attackBuffs});
+  const _CleanupQueue({
+    required this.healthDeltas,
+    required this.attackBuffs,
+    required this.knockbacks,
+  });
 
-  bool get hasAnyEffect => healthDeltas.isNotEmpty || attackBuffs.isNotEmpty;
+  bool get hasAnyEffect =>
+      healthDeltas.isNotEmpty ||
+      attackBuffs.isNotEmpty ||
+      knockbacks.isNotEmpty;
 }
 
 class _RuntimeUnit {
@@ -541,6 +786,8 @@ class _RuntimeUnit {
   int currentAttack;
   int pendingHealthDelta = 0;
   int pendingAttackDelta = 0;
+  int pendingKnockbackDistance = 0;
+  bool skipAdvanceThisTurn = false;
 
   _RuntimeUnit({
     required this.instanceId,
@@ -558,5 +805,6 @@ class _RuntimeUnit {
   void clearPendingEffects() {
     pendingHealthDelta = 0;
     pendingAttackDelta = 0;
+    pendingKnockbackDistance = 0;
   }
 }

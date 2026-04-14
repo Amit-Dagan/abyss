@@ -1,0 +1,82 @@
+[
+  {
+    "id": "poison_swinger",
+    "name": "Poison Swinger",
+    "iconKey": "beast",
+    "attack": 2,
+    "health": 5,
+    "attackPattern": "swinger",
+    "onHitEffects": [
+      {
+        "effectType": "poison",
+        "amount": 1
+      }
+    ],
+    "targetedSkills": [],
+    "passiveSkills": []
+  },
+  {
+    "id": "summoner_support",
+    "name": "Summoner Support",
+    "iconKey": "banner",
+    "attack": 1,
+    "health": 4,
+    "attackPattern": "front",
+    "onHitEffects": [],
+    "targetedSkills": [
+      {
+        "effectType": "heal",
+        "amount": 2,
+        "targetKey": "adjacent_allies"
+      }
+    ],
+    "passiveSkills": [
+      {
+        "effectType": "summoner",
+        "amount": 2
+      }
+    ]
+  },
+  {
+    "id": "stun_cleaver",
+    "name": "Stun Cleaver",
+    "iconKey": "ranged",
+    "attack": 3,
+    "health": 4,
+    "attackPattern": "cleave",
+    "onHitEffects": [
+      {
+        "effectType": "stun",
+        "amount": 1
+      }
+    ],
+    "targetedSkills": [],
+    "passiveSkills": []
+  },
+  {
+    "id": "taunt_tank",
+    "name": "Taunt Tank",
+    "iconKey": "soldier",
+    "attack": 2,
+    "health": 8,
+    "attackPattern": "front",
+    "onHitEffects": [],
+    "targetedSkills": [
+      {
+        "effectType": "buff_attack",
+        "amount": 1,
+        "targetKey": "adjacent_allies"
+      }
+    ],
+    "passiveSkills": [
+      {
+        "effectType": "taunt",
+        "targetKey": "adjacent_allies"
+      },
+      {
+        "effectType": "rage",
+        "amount": 1
+      }
+    ]
+  }
+]
