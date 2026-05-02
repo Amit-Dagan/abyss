@@ -17,14 +17,15 @@ void main() {
     await initializeDependencies();
   });
 
-  testWidgets('battle settings screen loads first', (
+  testWidgets('workspace home loads first', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MyApp());
     await tester.pump();
 
-    expect(find.text('BATTLE SETTINGS'), findsOneWidget);
-    expect(find.text('Start Battle'), findsOneWidget);
+    expect(find.text('ABYSS STUDIO'), findsOneWidget);
+    expect(find.text('Open Simulators'), findsOneWidget);
+    expect(find.text('Open Stories'), findsOneWidget);
   });
 
   testWidgets('battle unit card keyword can open a tooltip', (

@@ -8,6 +8,7 @@ import 'package:todo_list/presentation/pages/unit_editor/unit_editor_arguments.d
 import 'package:todo_list/presentation/pages/unit_library/unit_library_model.dart';
 import 'package:todo_list/presentation/pages/unit_library/unit_library_view_model.dart';
 import 'package:todo_list/presentation/widgets/editor_session_widgets.dart';
+import 'package:todo_list/presentation/widgets/workspace_navigation_widgets.dart';
 import 'package:todo_list/service_locator.dart';
 
 class UnitLibraryScreen
@@ -39,7 +40,12 @@ class _UnitLibraryScreenState
       ),
     ),
     backgroundColor: AppColors.primaryColor,
-    actions: const <Widget>[EditorSessionAction()],
+    actions: const <Widget>[
+      WorkspaceNavigationAction(
+        currentDestination: WorkspaceDestination.simulators,
+      ),
+      EditorSessionAction(),
+    ],
   );
 
   @override

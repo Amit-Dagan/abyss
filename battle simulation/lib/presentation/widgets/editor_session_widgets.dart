@@ -198,3 +198,124 @@ class EditorAccessBanner extends StatelessWidget {
     );
   }
 }
+
+class PlannerAccessBanner extends StatelessWidget {
+  final EdgeInsetsGeometry margin;
+
+  const PlannerAccessBanner({
+    super.key,
+    this.margin = const EdgeInsets.only(bottom: 16),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final EditorSessionService session = sl<EditorSessionService>();
+
+    return ListenableBuilder(
+      listenable: session,
+      builder: (BuildContext context, Widget? child) {
+        if (!session.supportsAuthentication) {
+          return const SizedBox.shrink();
+        }
+
+        final bool canPromptSignIn = !session.isSignedIn && !session.isBusy;
+        final String? errorMessage = session.errorMessage;
+        return Container(
+          width: double.infinity,
+          margin: margin,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: session.canManageStories
+                ? const Color(0xFFE7F7EF)
+                : const Color(0xFFFFF6E4),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: session.canManageStories
+                  ? const Color(0xFF8BD2A9)
+                  : const Color(0xFFF2C36B),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                session.canManageStories
+                    ? Icons.edit_note_rounded
+                    : Icons.lock_outline,
+                color: AppColors.primaryColor,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (session.isPlanner) ...[
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E7752),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'TEAM ACCESS',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                    Text(
+                      session.plannerStatusMessage,
+                      style: const TextStyle(
+                        color: AppColors.primaryColor,
+                        fontSize: 13,
+                        height: 1.35,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (errorMessage != null && errorMessage.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        errorMessage,
+                        style: const TextStyle(
+                          color: Color(0xFF9A3C00),
+                          fontSize: 12,
+                          height: 1.35,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (canPromptSignIn)
+                TextButton(
+                  onPressed: () async {
+                    await session.signIn();
+                    final String? message = session.errorMessage;
+                    if (context.mounted &&
+                        message != null &&
+                        message.isNotEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppColors.primaryColor,
+                          content: Text(message),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Sign in'),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}

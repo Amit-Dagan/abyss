@@ -11,6 +11,7 @@ import 'package:todo_list/presentation/pages/unit_editor/unit_editor_arguments.d
 import 'package:todo_list/presentation/pages/unit_editor/unit_editor_model.dart';
 import 'package:todo_list/presentation/pages/unit_editor/unit_editor_view_model.dart';
 import 'package:todo_list/presentation/widgets/editor_session_widgets.dart';
+import 'package:todo_list/presentation/widgets/workspace_navigation_widgets.dart';
 import 'package:todo_list/domain/services/editor_session_service.dart';
 import 'package:todo_list/service_locator.dart';
 
@@ -53,7 +54,12 @@ class _UnitEditorScreenState
       ),
     ),
     backgroundColor: AppColors.primaryColor,
-    actions: const <Widget>[EditorSessionAction()],
+    actions: const <Widget>[
+      WorkspaceNavigationAction(
+        currentDestination: WorkspaceDestination.simulators,
+      ),
+      EditorSessionAction(),
+    ],
   );
 
   @override
