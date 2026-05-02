@@ -6,6 +6,7 @@ import 'package:todo_list/domain/entities/battle_config.dart';
 import 'package:todo_list/presentation/pages/battle_settings/battle_settings_model.dart';
 import 'package:todo_list/presentation/pages/battle_settings/battle_settings_view_model.dart';
 import 'package:todo_list/presentation/widgets/editor_session_widgets.dart';
+import 'package:todo_list/presentation/widgets/workspace_navigation_widgets.dart';
 
 class BattleSettingsScreen
     extends BasePage<BattleSettingsModel, BattleSettingsViewModel> {
@@ -42,6 +43,9 @@ class _BattleSettingsScreenState
     automaticallyImplyLeading: false,
     backgroundColor: AppColors.primaryColor,
     actions: [
+      const WorkspaceNavigationAction(
+        currentDestination: WorkspaceDestination.simulators,
+      ),
       IconButton(
         onPressed: () => Navigator.pushNamed(context, '/units'),
         tooltip: 'Manage Units',

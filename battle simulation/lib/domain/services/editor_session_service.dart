@@ -16,17 +16,24 @@ class EditorSessionService extends ChangeNotifier {
   bool _isSigningIn = false;
   bool _isRefreshingAccess = false;
   bool _canEditUnits = false;
+  bool _canManageStories = false;
   bool _isAdmin = false;
+  bool _isPlanner = false;
   String? _errorMessage;
   User? _currentUser;
 
-  EditorSessionService.local({bool canEditUnits = true})
+  EditorSessionService.local({
+    bool canEditUnits = true,
+    bool canManageStories = true,
+  })
     : _auth = null,
       _firestore = null,
       _catalogRepository = null,
       _isInitialized = true,
       _isAdmin = canEditUnits,
-      _canEditUnits = canEditUnits;
+      _isPlanner = canManageStories,
+      _canEditUnits = canEditUnits,
+      _canManageStories = canManageStories;
 
   EditorSessionService.firebase({
     required FirebaseAuth auth,
@@ -38,11 +45,17 @@ class EditorSessionService extends ChangeNotifier {
 
   bool get canEditUnits => _canEditUnits;
 
+  bool get canManageStories => _canManageStories;
+
   String? get currentUserEmail => _currentUser?.email;
+
+  String? get currentUserId => _currentUser?.uid;
 
   String? get errorMessage => _errorMessage;
 
   bool get isAdmin => _isAdmin;
+
+  bool get isPlanner => _isPlanner;
 
   bool get isBusy => _isSigningIn || _isRefreshingAccess;
 
@@ -82,6 +95,22 @@ class EditorSessionService extends ChangeNotifier {
       return 'Signed in as ${currentUserEmail ?? 'admin'}. This account is an admin and can edit the shared unit catalog.';
     }
     return 'Signed in as ${currentUserEmail ?? 'reader'}, but this account is not marked as admin in Firestore. You have read-only access.';
+  }
+
+  String get plannerStatusMessage {
+    if (!supportsAuthentication) {
+      return 'Local planning mode is active on this platform.';
+    }
+    if (!isInitialized || isBusy) {
+      return 'Checking stories access...';
+    }
+    if (!isSignedIn) {
+      return 'The Stories segment is team-only. Sign in to view and manage stories.';
+    }
+    if (isPlanner) {
+      return 'Signed in as ${currentUserEmail ?? 'planner'}. This account can create and update stories and tasks.';
+    }
+    return 'Signed in as ${currentUserEmail ?? 'reader'}, but this account is not allowed to access the Stories segment.';
   }
 
   Future<bool> signIn() async {
@@ -127,7 +156,9 @@ class EditorSessionService extends ChangeNotifier {
 
     if (!supportsAuthentication || user == null) {
       _canEditUnits = false;
+      _canManageStories = false;
       _isAdmin = false;
+      _isPlanner = false;
       notifyListeners();
       return;
     }
@@ -135,7 +166,9 @@ class EditorSessionService extends ChangeNotifier {
     final String? email = user.email;
     if (email == null || !user.emailVerified) {
       _canEditUnits = false;
+      _canManageStories = false;
       _isAdmin = false;
+      _isPlanner = false;
       notifyListeners();
       return;
     }
@@ -150,6 +183,8 @@ class EditorSessionService extends ChangeNotifier {
       final DocumentSnapshot<Map<String, dynamic>> userSnapshot =
           await userDocument.get();
       final bool admin = (userSnapshot.data()?['admin'] as bool?) == true;
+      final bool planner =
+          admin || (userSnapshot.data()?['planner'] as bool?) == true;
 
       await userDocument.set(<String, dynamic>{
         'uid': user.uid,
@@ -157,18 +192,23 @@ class EditorSessionService extends ChangeNotifier {
         'displayName': user.displayName,
         'photoURL': user.photoURL,
         'admin': admin,
+        'planner': planner,
         'lastSeenAt': FieldValue.serverTimestamp(),
         if (!userSnapshot.exists) 'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
       _isAdmin = admin;
+      _isPlanner = planner;
       _canEditUnits = admin;
+      _canManageStories = planner;
       if (admin) {
         await _catalogRepository?.seedIfEmpty();
       }
     } catch (_) {
       _isAdmin = false;
+      _isPlanner = false;
       _canEditUnits = false;
+      _canManageStories = false;
       _errorMessage = 'Could not verify admin permissions.';
     } finally {
       _isRefreshingAccess = false;

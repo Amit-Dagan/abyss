@@ -2,6 +2,9 @@
 
 This is the canonical design document for the battle system.
 
+For the broader city-builder and abyss-loop product vision, see
+[abyss_mvp_gdd.md](abyss_mvp_gdd.md).
+
 It includes:
 
 - the current implemented battle rules

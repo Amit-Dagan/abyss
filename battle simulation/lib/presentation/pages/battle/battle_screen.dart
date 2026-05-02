@@ -14,6 +14,7 @@ import 'package:todo_list/presentation/pages/battle/widgets/battle_keyword_gloss
 import 'package:todo_list/presentation/pages/battle/widgets/battle_unit_card.dart';
 import 'package:todo_list/presentation/pages/battle/widgets/battle_unit_icon.dart';
 import 'package:todo_list/presentation/pages/battle/widgets/battle_unit_text_formatter.dart';
+import 'package:todo_list/presentation/widgets/workspace_navigation_widgets.dart';
 
 class BattleScreen extends BasePage<BattleModel, BattleViewModel> {
   const BattleScreen({super.key, required super.viewModel});
@@ -39,6 +40,9 @@ class _BattleScreenState
     ),
     backgroundColor: AppColors.primaryColor,
     actions: [
+      const WorkspaceNavigationAction(
+        currentDestination: WorkspaceDestination.simulators,
+      ),
       IconButton(
         onPressed: () => Navigator.pushNamed(context, '/units'),
         icon: const Icon(Icons.style_rounded, color: Colors.white),

@@ -3,9 +3,12 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "hosting": {
     "site": "abyss-f0953",
-    "public": "front/build/web",
+    "public": "battle simulation/build/web",
     "ignore": [
       "firebase.json",
       "**/.*",

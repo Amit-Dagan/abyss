@@ -14,24 +14,49 @@ service cloud.firestore {
         ).data.admin == true;
     }
 
+    function isPlannerUser() {
+      return isVerifiedUser()
+        && (
+          get(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          ).data.admin == true
+          || get(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          ).data.planner == true
+        );
+    }
+
     match /unitDefinitions/{unitId} {
       allow read: if true;
       allow write: if isAdminUser();
     }
 
     match /users/{userId} {
-      allow read: if isVerifiedUser() && request.auth.uid == userId;
+      allow read: if isVerifiedUser() && (
+        request.auth.uid == userId
+        || isPlannerUser()
+      );
       allow create: if isVerifiedUser()
         && request.auth.uid == userId
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email
-        && request.resource.data.admin == false;
+        && request.resource.data.admin == false
+        && request.resource.data.planner == false;
       allow update: if isVerifiedUser()
         && request.auth.uid == userId
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.email == resource.data.email
-        && request.resource.data.admin == resource.data.admin;
+        && request.resource.data.admin == resource.data.admin
+        && request.resource.data.planner == resource.data.planner;
       allow delete: if false;
+    }
+
+    match /stories/{storyId} {
+      allow read, write: if isPlannerUser();
+
+      match /tasks/{taskId} {
+        allow read, write: if isPlannerUser();
+      }
     }
   }
 }
